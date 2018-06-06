@@ -23,7 +23,7 @@ In this tutorial we go through some of the functionality of the `NetworkInferenc
 `netinf` infers the optimal diffusion network from a set of *nodes* (in this case US-states) and a number of so called *cascades* (here a cascade corresponds to a policy that is adopted by at least two states). A cascade is a series of events occurring at 
 a specified time. 
 
-If you want to follow along in your own R Session, you can clone the source files from the [github repo](https://github.com/flinder/NetworkInference_Tutorial) or you can [download](https://github.com/flinder/NetworkInference_Tutorial/archive/master.zip) them. The compiled tutorial is also available to read along [here](http://fridolin-linder.com/NetworkInference_Tutorial/index).
+If you want to follow along in your own R Session, you can clone the source files from the [github repo](https://github.com/flinder/NetworkInference_Tutorial) or you can [download](https://github.com/flinder/NetworkInference_Tutorial/archive/master.zip) them. The compiled tutorial is also available to read along here: [http://fridolin-linder.com/NetworkInference_Tutorial/](http://fridolin-linder.com/NetworkInference_Tutorial/).
 
 ## Installing the package
 
@@ -35,7 +35,6 @@ install.packages('NetworkInference')
 Some other packages required for this tutorial:
 ```{r, eval=FALSE}
 install.packages(c('dplyr', 'igraph', 'speedglm', 'devtools'))
-devtools::install_github('desmarais-lab/spid')
 ```
 
 ## Exploring SPID Data
@@ -272,8 +271,9 @@ if(requireNamespace("igraph", quietly = TRUE)) {
 
 ## Selecting Parameters with Event History Analysis
 
-We will release an R-package for policy diffusion analysis `spid`. Until then you can already use some of the functions either by downloading them directly from the github repository ()[https://github.com/desmarais-lab/spid] or by installing the (alpha version of) the package:
+We will release an R-package for policy diffusion analysis `spid`. Until then, you can already use some of the functions. Either by downloading them directly from the [github repository](https://github.com/desmarais-lab/spid) or by installing the (alpha version of) the package:
 ```{r, message=FALSE}
+devtools::install_github('desmarais-lab/spid')
 library(spid)
 ```
 
@@ -321,9 +321,11 @@ eha_data
 With the eha dataset we can now fit the eha model:
 ```{r, cache=TRUE}
 library(speedglm)
-mod <- event ~ events_so_far + n_neighbor_events_decay + cascade_id
-res <- speedglm::speedglm(mod, data = eha_data,
-                          family = binomial(link = "logit"))
+mod = event ~ events_so_far + n_neighbor_events_decay + cascade_id
+res = speedglm(mod, data = eha_data, family = binomial(link = "logit"))
+smry = summary(res)
+smry$coefficients = head(smry$coefficients)
+smry
 BIC(res)
 ```
 
