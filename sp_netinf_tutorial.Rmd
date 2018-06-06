@@ -18,30 +18,25 @@ knitr::opts_chunk$set(
 )
 ```
 
-
----
-
-# Introduction
-
----
-
 In this tutorial we go through some of the functionality of the `NetworkInference` package using the example application from Desmarais et al. (2015) and extending it with the recently released [State Policy Innovation and Diffusion](https://doi.org/10.7910/DVN/CVYSR7) (SPID) database. In this paper Desmarais et al. infer a latent network for policy diffusion based on adoption of policies in the US states.
 
 `netinf` infers the optimal diffusion network from a set of *nodes* (in this case US-states) and a number of so called *cascades* (here a cascade corresponds to a policy that is adopted by at least two states). A cascade is a series of events occurring at 
 a specified time. 
 
+If you want to follow along in your own R Session, you can clone the source files from the [github repo](https://github.com/flinder/NetworkInference_Tutorial) or you can [download](https://github.com/flinder/NetworkInference_Tutorial/archive/master.zip) them. The compiled tutorial is also available to read along here: [](http://fridolin-linder.com/NetworkInference_Tutorial/index).
+
 ## Installing the package
 
 Installing `NetworkInference`:
 ```{r, eval=FALSE}
-#install.packages('NetworkInference')
+install.packages('NetworkInference')
 ```
 
 Some other packages required for this tutorial:
 ```{r, eval=FALSE}
-#install.packages(c('dplyr', 'igraph'))
+install.packages(c('dplyr', 'igraph', 'speedglm', 'devtools'))
+devtools::install_github('desmarais-lab/spid')
 ```
-
 
 ## Exploring SPID Data
 
@@ -55,13 +50,13 @@ ls()
 This loads two `data.frame`-objects. `policies` contains the adoption events and `policies_metadata` contains additional information on each policy.
 
 ```{r}
-head(policies)
+print(policies)
 ```
 
 The first column (`statenam`) gives the state that adopted the `policy` in year `adopt_year`. Let's take a closer look at the data.
 
 ```{r}
-head(policies_metadata)
+print(policies_metadata)
 ```
 The column `policy` gives the policy identifier that connects to the `policies` data. `source` is the original data source for this policy, `first_year` the first year any state adopted this policy, `last_year` the last adoption event in the data. `adopt_count` is the number of states that adopted the policy, `description` gives more information and `majortopic` is a topic coding into the policy agenda project topic categories.
 
@@ -104,9 +99,9 @@ In this case we used the function `as_cascade_long`. If your data is in wide for
 The `cascade` class contains the same data as the `policies` `data.frame`, just in a different format.
 
 ```{r}
-class(policy_cascades)
+print(class(policy_cascades))
 length(policy_cascades)
-names(policy_cascades)
+print(names(policy_cascades))
 ```
 
 The `cascade` object contains the casacde information in three elements:
@@ -205,6 +200,7 @@ In the original implementation the number of edges to infer had to be fixed and 
 ```{r}
 results <- netinf(policy_cascades, trans_mod = "exponential", n_edges = 100, 
                   params = 0.5, quiet = FALSE)
+print(results)
 ```
 
 The exponential model has only one parameter (lambda or the rate). If there are more parameters the details section in the documentation of the `netinf` function (`?netinf`) has more detail on how to specify parameters and on the specific parametrization used by the implementation. 
@@ -228,7 +224,7 @@ After each iteration of the netinf algorithm, we check if the edge added signifi
 ```{r}
 results <- netinf(policy_cascades, trans_mod = "exponential", 
                   p_value_cutoff = 0.1, params = 0.5, quiet = TRUE)
-nrow(results)
+print(results)
 ```
 
 We see that with a fixed lambda of 0.5 and a p-value cut-off of 0.1 the algorithm inferred 872 edges.
@@ -240,7 +236,7 @@ The diffusion model parameters can be selected automatically. Setting the `param
 ```{r}
 results <- netinf(policy_cascades, trans_mod = "exponential", 
                   p_value_cutoff = 0.1, quiet = TRUE)
-nrow(results)
+attr(results, 'diffusion_model_parameters')
 ```
 
 ### Netinf output
@@ -248,7 +244,7 @@ nrow(results)
 Let's take a look at the output of the algorithm. The output is a dataframe containing the inferred latent network in the form of an edgelist:
 
 ```{r, eval=FALSE, echo=TRUE}
-head(results)
+print(results)
 ```
 
 Each row corresponds to a directed edge. The first column indicates the origin node, the second the destination node. The third column displays the gain in model fit from each added edge. The last column displays the p-value from the Vuong test of each edge. There is a generic plot method to inspect the results. If more tweaking is required, the results are a dataframe so it should be easy for the more experienced users to make your own plot. With `type = "improvement"` the improvement from each edge can be plotted:
@@ -287,9 +283,7 @@ if(requireNamespace("igraph", quietly = TRUE)) {
 ## Selecting Parameters with Event History Analysis
 
 We will release an R-package for policy diffusion analysis `spid`. Until then you can already use some of the functions either by downloading them directly from the github repository ()[https://github.com/desmarais-lab/spid] or by installing the (alpha version of) the package:
-```{r}
-#install.packages('devtools')
-devtools::install_github('desmarais-lab/spid')
+```{r, message=FALSE}
 library(spid)
 ```
 
@@ -305,33 +299,34 @@ lambdas = c(0.5, 1)
 time_windows = c(50, 100)
 grid = expand.grid(n_edges, lambdas, time_windows)
 colnames(grid) = c('n_edges', 'lambdas', 'time_windows')
-head(grid)
+print(grid)
 ```
 
 For each grid point, we need to infer a network for every year using the parameters of that grid point. For one year:
 ```{r}
+library(spid)
 network = infer_network(time = 1960, time_window = time_windows[1], 
                         cascades = policy_cascades, params = lambdas[1], 
                         n_edges = n_edges[1])
-head(network)
-nrow(network)
+print(network)
 ```
 For all years:
-```{r}
+```{r, cache=TRUE}
 years = 1960:2015
 networks = lapply(years, infer_network, time_window = time_windows[1],
                   cascades = policy_cascades, params = lambdas[1], 
                   n_edges = n_edges[1])
 # Cast into single dataframe:
 networks = do.call(rbind, networks)
+print(networks)
 ```
 
 Now we can construct the EHA data frame:
-```{r}
+```{r, cache=TRUE}
 eha_data = make_eha_data(cascades = policy_cascades, networks = networks, 
-                         min_time = 1960, decay_parameter = 1)
+                         min_time = 1960, decay_parameter = lambdas[1])
 nrow(eha_data)
-head(eha_data)
+eha_data
 ```
 ```{r}
 library(speedglm)
@@ -342,11 +337,11 @@ BIC(res)
 ```
 
 The `spid` package will do all of this automatically on the whole parameter grid:
-```{r}
-#grid_search_results = grid_search_eha(cascades = policy_cascades, n_jobs = 4,
-#                                      n_edges = n_edges, params = lambdas, 
-#                                      time_windows = time_windows)
-#save(grid_search_results, file = 'grid_search_results.RData')
-#load('grid_search_results.RData')
-#print(grid_search_results)
+```{r, cache=TRUE}
+grid_search_results = grid_search_eha(cascades = policy_cascades, n_jobs = 4,
+                                      n_edges = n_edges, params = lambdas, 
+                                      time_windows = time_windows)
+save(grid_search_results, file = 'grid_search_results.RData')
+load('grid_search_results.RData')
+print(grid_search_results)
 ```
