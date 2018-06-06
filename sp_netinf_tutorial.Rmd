@@ -41,7 +41,7 @@ devtools::install_github('desmarais-lab/spid')
 ## Exploring SPID Data
 
 The policy adoption data is available in the package:
-```{r}
+```{r, message=FALSE}
 library(NetworkInference)
 data('policies')
 ls()
@@ -172,8 +172,8 @@ simultaneously.
 
 Let's first look at the visualization with labels. Here we plot two cascades, 
 selected by their name:
-```{r, fig.align='center', fig.width=5, fig.height=3}
-#```{r, fig.align='center', fig.width=9, fig.height=3}
+#```{r, fig.align='center', fig.width=5, fig.height=3}
+```{r, fig.align='center', fig.width=9, fig.height=3}
 selection <- c('guncontrol_assaultweapon_ba', 'guncontrol_licenses_dealer')
 plot(policy_cascades, label_nodes = TRUE, selection = selection)
 ```
@@ -199,8 +199,8 @@ In the original implementation the number of edges to infer had to be fixed and 
 
 ```{r}
 results <- netinf(policy_cascades, trans_mod = "exponential", n_edges = 100, 
-                  params = 0.5, quiet = FALSE)
-print(results)
+                  params = 0.5, quiet = TRUE)
+print(tbl_df(results))
 ```
 
 The exponential model has only one parameter (lambda or the rate). If there are more parameters the details section in the documentation of the `netinf` function (`?netinf`) has more detail on how to specify parameters and on the specific parametrization used by the implementation. 
@@ -243,7 +243,7 @@ attr(results, 'diffusion_model_parameters')
 
 Let's take a look at the output of the algorithm. The output is a dataframe containing the inferred latent network in the form of an edgelist:
 
-```{r, eval=FALSE, echo=TRUE}
+```{r}
 print(results)
 ```
 
@@ -297,13 +297,13 @@ We want to evaluate each combination of three parameters on a grid:
 n_edges = c(500, 700)
 lambdas = c(0.5, 1)
 time_windows = c(50, 100)
-grid = expand.grid(n_edges, lambdas, time_windows)
-colnames(grid) = c('n_edges', 'lambdas', 'time_windows')
-print(grid)
+param_grid = expand.grid(n_edges, lambdas, time_windows)
+colnames(param_grid) = c('n_edges', 'lambdas', 'time_windows')
+print(param_grid)
 ```
 
 For each grid point, we need to infer a network for every year using the parameters of that grid point. For one year:
-```{r}
+```{r, message=FALSE}
 library(spid)
 network = infer_network(time = 1960, time_window = time_windows[1], 
                         cascades = policy_cascades, params = lambdas[1], 
@@ -325,10 +325,11 @@ Now we can construct the EHA data frame:
 ```{r, cache=TRUE}
 eha_data = make_eha_data(cascades = policy_cascades, networks = networks, 
                          min_time = 1960, decay_parameter = lambdas[1])
-nrow(eha_data)
-eha_data
+print(eha_data)
 ```
-```{r}
+
+With the eha dataset we can now fit the eha model:
+```{r, cache=TRUE}
 library(speedglm)
 mod <- event ~ events_so_far + n_neighbor_events_decay + cascade_id
 res <- speedglm::speedglm(mod, data = eha_data,
@@ -338,10 +339,10 @@ BIC(res)
 
 The `spid` package will do all of this automatically on the whole parameter grid:
 ```{r, cache=TRUE}
-grid_search_results = grid_search_eha(cascades = policy_cascades, n_jobs = 4,
-                                      n_edges = n_edges, params = lambdas, 
-                                      time_windows = time_windows)
-save(grid_search_results, file = 'grid_search_results.RData')
+#grid_search_results = grid_search_eha(cascades = policy_cascades, n_jobs = 4,
+#                                      n_edges = n_edges, params = lambdas, 
+#                                      time_windows = time_windows)
+#save(grid_search_results, file = 'grid_search_results.RData')
 load('grid_search_results.RData')
-print(grid_search_results)
+print(arrange(grid_search_results, bic))
 ```
