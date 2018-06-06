@@ -5,30 +5,25 @@ knitr::opts_chunk$set(
 )
 
 ## ---- eval=FALSE---------------------------------------------------------
-## #install.packages('NetworkInference')
+## install.packages('NetworkInference')
 
 ## ---- eval=FALSE---------------------------------------------------------
-## #install.packages(c('dplyr', 'igraph'))
+## install.packages(c('dplyr', 'igraph', 'speedglm', 'devtools'))
+## devtools::install_github('desmarais-lab/spid')
 
-## ------------------------------------------------------------------------
+## ---- message=FALSE------------------------------------------------------
 library(NetworkInference)
 data('policies')
-ls()
+print(ls())
 
 ## ------------------------------------------------------------------------
-head(policies)
+policies
 
 ## ------------------------------------------------------------------------
-head(policies_metadata)
+policies_metadata
 
 ## ------------------------------------------------------------------------
-nrow(policies_metadata)
-
-## ------------------------------------------------------------------------
-nrow(policies)
-
-## ------------------------------------------------------------------------
-unique(policies$policy)[100:104]
+print(unique(policies$policy)[100:104])
 
 ## ---- message=FALSE------------------------------------------------------
 library(dplyr)
@@ -41,9 +36,9 @@ policy_cascades <- as_cascade_long(policies, cascade_node_name = 'statenam',
                                    cascade_id = 'policy')
 
 ## ------------------------------------------------------------------------
-class(policy_cascades)
+print(class(policy_cascades))
 length(policy_cascades)
-names(policy_cascades)
+print(names(policy_cascades))
 
 ## ------------------------------------------------------------------------
 selected_policies <- subset_cascade(cascade = policy_cascades, 
@@ -63,8 +58,7 @@ print(less_nodes[1:2])
 ## ------------------------------------------------------------------------
 summary(policy_cascades)
 
-## ---- fig.align='center', fig.width=5, fig.height=3----------------------
-#```{r, fig.align='center', fig.width=9, fig.height=3}
+## ---- fig.align='center', fig.width=9, fig.height=3----------------------
 selection <- c('guncontrol_assaultweapon_ba', 'guncontrol_licenses_dealer')
 plot(policy_cascades, label_nodes = TRUE, selection = selection)
 
@@ -76,7 +70,8 @@ plot(policy_cascades, label_nodes = FALSE, selection = selection)
 
 ## ------------------------------------------------------------------------
 results <- netinf(policy_cascades, trans_mod = "exponential", n_edges = 100, 
-                  params = 0.5, quiet = FALSE)
+                  params = 0.5, quiet = TRUE)
+results
 
 ## ------------------------------------------------------------------------
 npe <- count_possible_edges(policy_cascades)
@@ -85,15 +80,15 @@ npe
 ## ------------------------------------------------------------------------
 results <- netinf(policy_cascades, trans_mod = "exponential", 
                   p_value_cutoff = 0.1, params = 0.5, quiet = TRUE)
-nrow(results)
+results
 
 ## ------------------------------------------------------------------------
 results <- netinf(policy_cascades, trans_mod = "exponential", 
                   p_value_cutoff = 0.1, quiet = TRUE)
-nrow(results)
+attr(results, 'diffusion_model_parameters')
 
-## ---- eval=FALSE, echo=TRUE----------------------------------------------
-## head(results)
+## ------------------------------------------------------------------------
+results
 
 ## ---- fig.align='center', fig.width=7, fig.height=4----------------------
 plot(results, type = "improvement")
@@ -116,52 +111,50 @@ if(requireNamespace("igraph", quietly = TRUE)) {
 ##     plot(g, edge.arrow.size=.3, vertex.color = "grey70")
 ## }
 
-## ------------------------------------------------------------------------
-#install.packages('devtools')
-devtools::install_github('desmarais-lab/spid')
+## ---- message=FALSE------------------------------------------------------
 library(spid)
 
 ## ------------------------------------------------------------------------
 n_edges = c(500, 700)
 lambdas = c(0.5, 1)
 time_windows = c(50, 100)
-grid = expand.grid(n_edges, lambdas, time_windows)
-colnames(grid) = c('n_edges', 'lambdas', 'time_windows')
-head(grid)
+param_grid = expand.grid(n_edges, lambdas, time_windows)
+colnames(param_grid) = c('n_edges', 'lambdas', 'time_windows')
+param_grid
 
-## ------------------------------------------------------------------------
+## ---- message=FALSE------------------------------------------------------
+library(spid)
 network = infer_network(time = 1960, time_window = time_windows[1], 
                         cascades = policy_cascades, params = lambdas[1], 
                         n_edges = n_edges[1])
-head(network)
-nrow(network)
+network
 
-## ------------------------------------------------------------------------
+## ---- cache=TRUE---------------------------------------------------------
 years = 1960:2015
 networks = lapply(years, infer_network, time_window = time_windows[1],
                   cascades = policy_cascades, params = lambdas[1], 
                   n_edges = n_edges[1])
 # Cast into single dataframe:
 networks = do.call(rbind, networks)
+networks
 
-## ------------------------------------------------------------------------
+## ---- cache=TRUE---------------------------------------------------------
 eha_data = make_eha_data(cascades = policy_cascades, networks = networks, 
-                         min_time = 1960, decay_parameter = 1)
-nrow(eha_data)
-head(eha_data)
+                         min_time = 1960, decay_parameter = lambdas[1])
+eha_data
 
-## ------------------------------------------------------------------------
+## ---- cache=TRUE---------------------------------------------------------
 library(speedglm)
 mod <- event ~ events_so_far + n_neighbor_events_decay + cascade_id
 res <- speedglm::speedglm(mod, data = eha_data,
                           family = binomial(link = "logit"))
 BIC(res)
 
-## ------------------------------------------------------------------------
-grid_search_results = grid_search_eha(cascades = policy_cascades, n_jobs = 4,
-                                      n_edges = n_edges, params = lambdas, 
-                                      time_windows = time_windows)
-save(grid_search_results, file = 'grid_search_results.RData')
+## ---- cache=TRUE---------------------------------------------------------
+#grid_search_results = grid_search_eha(cascades = policy_cascades, n_jobs = 4,
+#                                      n_edges = n_edges, params = lambdas, 
+#                                      time_windows = time_windows)
+#save(grid_search_results, file = 'grid_search_results.RData')
 load('grid_search_results.RData')
-print(grid_search_results)
+arrange(grid_search_results, bic)
 
