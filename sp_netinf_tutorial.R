@@ -9,7 +9,6 @@ knitr::opts_chunk$set(
 
 ## ---- eval=FALSE---------------------------------------------------------
 ## install.packages(c('dplyr', 'igraph', 'speedglm', 'devtools'))
-## devtools::install_github('desmarais-lab/spid')
 
 ## ---- message=FALSE------------------------------------------------------
 library(NetworkInference)
@@ -62,7 +61,7 @@ summary(policy_cascades)
 selection <- c('guncontrol_assaultweapon_ba', 'guncontrol_licenses_dealer')
 plot(policy_cascades, label_nodes = TRUE, selection = selection)
 
-## ---- fig.align='center', fig.width=5, fig.height=3----------------------
+## ---- fig.align='center', fig.width=8, fig.height=4----------------------
 selection <- c('waiting', 'threestrikes', 'unionlimits', 'smokeban', 
                'paperterror', 'miglab', 'methpre', 'lott', 'lemon', 'idtheft',
                'harass', 'hatecrime', 'equalpay')
@@ -112,6 +111,7 @@ if(requireNamespace("igraph", quietly = TRUE)) {
 ## }
 
 ## ---- message=FALSE------------------------------------------------------
+devtools::install_github('desmarais-lab/spid')
 library(spid)
 
 ## ------------------------------------------------------------------------
@@ -145,9 +145,11 @@ eha_data
 
 ## ---- cache=TRUE---------------------------------------------------------
 library(speedglm)
-mod <- event ~ events_so_far + n_neighbor_events_decay + cascade_id
-res <- speedglm::speedglm(mod, data = eha_data,
-                          family = binomial(link = "logit"))
+mod = event ~ events_so_far + n_neighbor_events_decay + cascade_id
+res = speedglm(mod, data = eha_data, family = binomial(link = "logit"))
+smry = summary(res)
+smry$coefficients = head(smry$coefficients)
+smry
 BIC(res)
 
 ## ---- cache=TRUE---------------------------------------------------------
