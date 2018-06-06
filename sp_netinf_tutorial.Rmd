@@ -50,13 +50,13 @@ ls()
 This loads two `data.frame`-objects. `policies` contains the adoption events and `policies_metadata` contains additional information on each policy.
 
 ```{r}
-print(policies)
+policies
 ```
 
 The first column (`statenam`) gives the state that adopted the `policy` in year `adopt_year`. Let's take a closer look at the data.
 
 ```{r}
-print(policies_metadata)
+head(policies_metadata)
 ```
 The column `policy` gives the policy identifier that connects to the `policies` data. `source` is the original data source for this policy, `first_year` the first year any state adopted this policy, `last_year` the last adoption event in the data. `adopt_count` is the number of states that adopted the policy, `description` gives more information and `majortopic` is a topic coding into the policy agenda project topic categories.
 
@@ -200,7 +200,7 @@ In the original implementation the number of edges to infer had to be fixed and 
 ```{r}
 results <- netinf(policy_cascades, trans_mod = "exponential", n_edges = 100, 
                   params = 0.5, quiet = TRUE)
-print(tbl_df(results))
+results
 ```
 
 The exponential model has only one parameter (lambda or the rate). If there are more parameters the details section in the documentation of the `netinf` function (`?netinf`) has more detail on how to specify parameters and on the specific parametrization used by the implementation. 
@@ -224,7 +224,7 @@ After each iteration of the netinf algorithm, we check if the edge added signifi
 ```{r}
 results <- netinf(policy_cascades, trans_mod = "exponential", 
                   p_value_cutoff = 0.1, params = 0.5, quiet = TRUE)
-print(results)
+results
 ```
 
 We see that with a fixed lambda of 0.5 and a p-value cut-off of 0.1 the algorithm inferred 872 edges.
@@ -244,7 +244,7 @@ attr(results, 'diffusion_model_parameters')
 Let's take a look at the output of the algorithm. The output is a dataframe containing the inferred latent network in the form of an edgelist:
 
 ```{r}
-print(results)
+results
 ```
 
 Each row corresponds to a directed edge. The first column indicates the origin node, the second the destination node. The third column displays the gain in model fit from each added edge. The last column displays the p-value from the Vuong test of each edge. There is a generic plot method to inspect the results. If more tweaking is required, the results are a dataframe so it should be easy for the more experienced users to make your own plot. With `type = "improvement"` the improvement from each edge can be plotted:
@@ -299,7 +299,7 @@ lambdas = c(0.5, 1)
 time_windows = c(50, 100)
 param_grid = expand.grid(n_edges, lambdas, time_windows)
 colnames(param_grid) = c('n_edges', 'lambdas', 'time_windows')
-print(param_grid)
+head(param_grid)
 ```
 
 For each grid point, we need to infer a network for every year using the parameters of that grid point. For one year:
@@ -308,7 +308,7 @@ library(spid)
 network = infer_network(time = 1960, time_window = time_windows[1], 
                         cascades = policy_cascades, params = lambdas[1], 
                         n_edges = n_edges[1])
-print(network)
+head(network)
 ```
 For all years:
 ```{r, cache=TRUE}
@@ -318,14 +318,14 @@ networks = lapply(years, infer_network, time_window = time_windows[1],
                   n_edges = n_edges[1])
 # Cast into single dataframe:
 networks = do.call(rbind, networks)
-print(networks)
+head(networks)
 ```
 
 Now we can construct the EHA data frame:
 ```{r, cache=TRUE}
 eha_data = make_eha_data(cascades = policy_cascades, networks = networks, 
                          min_time = 1960, decay_parameter = lambdas[1])
-print(eha_data)
+head(eha_data)
 ```
 
 With the eha dataset we can now fit the eha model:
@@ -344,5 +344,5 @@ The `spid` package will do all of this automatically on the whole parameter grid
 #                                      time_windows = time_windows)
 #save(grid_search_results, file = 'grid_search_results.RData')
 load('grid_search_results.RData')
-print(arrange(grid_search_results, bic))
+head(arrange(grid_search_results, bic))
 ```
