@@ -6,5 +6,5 @@ Written in [RMarkdown](https://rmarkdown.rstudio.com/) and hosted on [Github-Pag
 You can:
 
 * read the whole tutorial here: http://fridolin-linder.com/NetworkInference_Tutorial
-* follow along with just the R code in [sp_netinf_tutorial.R](sp_netinf_tutorial.R)
-* read the source for this tutorial in [sp_netinf_tutorial.Rmd](sp_netinf_tutorial.Rmd)
+* follow along with just the R code: [sp_netinf_tutorial.R](sp_netinf_tutorial.R)
+* read the source for this tutorial: [sp_netinf_tutorial.Rmd](sp_netinf_tutorial.Rmd)
