@@ -23,7 +23,7 @@ In this tutorial we go through some of the functionality of the `NetworkInferenc
 `netinf` infers the optimal diffusion network from a set of *nodes* (in this case US-states) and a number of so called *cascades* (here a cascade corresponds to a policy that is adopted by at least two states). A cascade is a series of events occurring at 
 a specified time. 
 
-If you want to follow along in your own R Session, you can clone the source files from the [github repo](https://github.com/flinder/NetworkInference_Tutorial) or you can [download](https://github.com/flinder/NetworkInference_Tutorial/archive/master.zip) them. The compiled tutorial is also available to read along here: [](http://fridolin-linder.com/NetworkInference_Tutorial/index).
+If you want to follow along in your own R Session, you can clone the source files from the [github repo](https://github.com/flinder/NetworkInference_Tutorial) or you can [download](https://github.com/flinder/NetworkInference_Tutorial/archive/master.zip) them. The compiled tutorial is also available to read along [here](http://fridolin-linder.com/NetworkInference_Tutorial/index).
 
 ## Installing the package
 
@@ -44,7 +44,7 @@ The policy adoption data is available in the package:
 ```{r, message=FALSE}
 library(NetworkInference)
 data('policies')
-ls()
+print(ls())
 ```
 
 This loads two `data.frame`-objects. `policies` contains the adoption events and `policies_metadata` contains additional information on each policy.
@@ -56,23 +56,13 @@ policies
 The first column (`statenam`) gives the state that adopted the `policy` in year `adopt_year`. Let's take a closer look at the data.
 
 ```{r}
-head(policies_metadata)
+policies_metadata
 ```
 The column `policy` gives the policy identifier that connects to the `policies` data. `source` is the original data source for this policy, `first_year` the first year any state adopted this policy, `last_year` the last adoption event in the data. `adopt_count` is the number of states that adopted the policy, `description` gives more information and `majortopic` is a topic coding into the policy agenda project topic categories.
 
-Number of policies:
-```{r}
-nrow(policies_metadata)
-```
-
-Number of adoption events:
-```{r}
-nrow(policies)
-```
-
 Some example policies:
 ```{r}
-unique(policies$policy)[100:104]
+print(unique(policies$policy)[100:104])
 ```
 
 Not all the policy abbreviations are understandable. So let's check the metadata for more information:
@@ -152,7 +142,7 @@ system, the number of nodes involved in cascades (there might be states that we
 don't have diffusion data on, but we still want them represented in the dataset)
 and the possible number of edges in a potential diffusion network (a diffusion edge 
 between nodes `u` and `v` only makes sense if there is at least one cascade in 
-which `u` experiences an event before `v`). In this example there are 187 
+which `u` experiences an event before `v`). In this example there are 728 
 policies and 50 states. Each state is involved in at least one policy cascade 
 and a fully connected diffusion network would have 2450 edges. 
 
@@ -299,7 +289,7 @@ lambdas = c(0.5, 1)
 time_windows = c(50, 100)
 param_grid = expand.grid(n_edges, lambdas, time_windows)
 colnames(param_grid) = c('n_edges', 'lambdas', 'time_windows')
-head(param_grid)
+param_grid
 ```
 
 For each grid point, we need to infer a network for every year using the parameters of that grid point. For one year:
@@ -308,7 +298,7 @@ library(spid)
 network = infer_network(time = 1960, time_window = time_windows[1], 
                         cascades = policy_cascades, params = lambdas[1], 
                         n_edges = n_edges[1])
-head(network)
+network
 ```
 For all years:
 ```{r, cache=TRUE}
@@ -318,14 +308,14 @@ networks = lapply(years, infer_network, time_window = time_windows[1],
                   n_edges = n_edges[1])
 # Cast into single dataframe:
 networks = do.call(rbind, networks)
-head(networks)
+networks
 ```
 
 Now we can construct the EHA data frame:
 ```{r, cache=TRUE}
 eha_data = make_eha_data(cascades = policy_cascades, networks = networks, 
                          min_time = 1960, decay_parameter = lambdas[1])
-head(eha_data)
+eha_data
 ```
 
 With the eha dataset we can now fit the eha model:
@@ -344,5 +334,5 @@ The `spid` package will do all of this automatically on the whole parameter grid
 #                                      time_windows = time_windows)
 #save(grid_search_results, file = 'grid_search_results.RData')
 load('grid_search_results.RData')
-head(arrange(grid_search_results, bic))
+arrange(grid_search_results, bic)
 ```
