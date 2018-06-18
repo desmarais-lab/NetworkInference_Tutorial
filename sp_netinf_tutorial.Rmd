@@ -44,7 +44,7 @@ The policy adoption data is available in the package:
 ```{r, message=FALSE}
 library(NetworkInference)
 data('policies')
-ls()
+print(ls())
 ```
 
 This loads two `data.frame`-objects. `policies` contains the adoption events and `policies_metadata` contains additional information on each policy.
